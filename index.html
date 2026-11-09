@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BMI 健康計算器</title>
+<style>
+:root{--ink:#203b4b;--muted:#6d818b;--green:#16836e;--mint:#e8f6f0;--line:#dce9e5}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;color:var(--ink);background:linear-gradient(135deg,#e5f5f0,#eaf2fb 55%,#fff5e7);display:grid;place-items:center;padding:24px}
+main{width:min(100%,520px);background:#ffffffed;border:1px solid #fff;border-radius:28px;padding:32px;box-shadow:0 18px 55px #2b59631a}
+header{text-align:center;margin-bottom:26px}
+.icon{width:64px;height:64px;border-radius:20px;background:var(--mint);display:grid;place-items:center;margin:0 auto 14px;font-size:32px}
+h1{margin:0;font-size:30px;font-weight:900;letter-spacing:1px}
+.subtitle{color:var(--muted);margin:9px 0 0;font-size:14px}
+.field{margin:19px 0}
+label{display:flex;justify-content:space-between;align-items:center;font-weight:800;margin-bottom:9px}
+.unit{font-size:13px;color:var(--muted);font-weight:600}
+.input-wrap{position:relative}
+input{width:100%;border:1.5px solid var(--line);border-radius:14px;padding:15px 55px 15px 16px;font-size:18px;color:var(--ink);outline:none;background:#fbfdfc;transition:.2s}
+input:focus{border-color:var(--green);box-shadow:0 0 0 4px #16836e18}
+.suffix{position:absolute;right:17px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:700}
+button{width:100%;border:0;border-radius:15px;background:var(--green);color:#fff;padding:16px;font-size:17px;font-weight:850;cursor:pointer;box-shadow:0 5px 0 #0d6655;transition:.12s;margin-top:8px}
+button:active{transform:translateY(3px);box-shadow:0 2px 0 #0d6655}
+.error{display:none;color:#b42318;font-size:13px;margin:12px 2px 0}
+.result{display:none;margin-top:24px;padding:22px;border-radius:20px;background:var(--mint);text-align:center}
+.result.show{display:block}
+.result-label{font-size:14px;color:#4b7469;font-weight:800}
+.bmi{font-size:54px;line-height:1.2;font-weight:950;color:#116e5c;margin:5px 0}
+.category{display:inline-block;border-radius:99px;padding:7px 16px;background:#fff;color:#116e5c;font-weight:850;margin:4px 0 8px}
+.advice{font-size:13px;color:#527168;line-height:1.65;margin:8px 0 0}
+.scale{display:grid;grid-template-columns:18.5fr 6.5fr 5fr 1fr;gap:4px;margin-top:19px;height:9px}
+.scale span{border-radius:20px}
+.scale span:nth-child(1){background:#6ba9df}.scale span:nth-child(2){background:#50b98b}.scale span:nth-child(3){background:#f0bd59}.scale span:nth-child(4){background:#df7c75}
+.scale-labels{display:flex;justify-content:space-between;color:var(--muted);font-size:10px;margin-top:7px}
+.note{margin-top:22px;padding-top:17px;border-top:1px solid var(--line);font-size:12px;line-height:1.7;color:var(--muted)}
+.reset{background:#eaf3f0;color:#246455;box-shadow:none;margin-top:12px}
+.reset:active{box-shadow:none}
+@media(max-width:480px){main{padding:25px 20px}h1{font-size:26px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="icon">⚖️</div>
+  <h1>BMI 健康計算器</h1>
+  <p class="subtitle">輸入身高與體重，快速計算你的身體質量指數</p>
+</header>
+<form id="bmi-form" novalidate>
+  <div class="field">
+    <label for="height">身高 <span class="unit">公分（cm）</span></label>
+    <div class="input-wrap"><input id="height" type="number" min="50" max="250" step="0.1" placeholder="例如：170" inputmode="decimal" required><span class="suffix">cm</span></div>
+  </div>
+  <div class="field">
+    <label for="weight">體重 <span class="unit">公斤（kg）</span></label>
+    <div class="input-wrap"><input id="weight" type="number" min="10" max="500" step="0.1" placeholder="例如：65" inputmode="decimal" required><span class="suffix">kg</span></div>
+  </div>
+  <button type="submit">計算 BMI</button>
+  <p class="error" id="error" role="alert"></p>
+</form>
+<section class="result" id="result" aria-live="polite">
+  <div class="result-label">你的 BMI 指數</div>
+  <div class="bmi" id="bmi-value">0.0</div>
+  <div class="category" id="category">正常</div>
+  <p class="advice" id="advice"></p>
+  <div class="scale"><span></span><span></span><span></span><span></span></div>
+  <div class="scale-labels"><span>過輕</span><span>正常</span><span>過重</span><span>肥胖</span></div>
+  <button type="button" class="reset" id="reset">重新計算</button>
+</section>
+<div class="note">BMI = 體重（kg）÷ 身高（m）²。此工具採用台灣成人常用分類：過輕低於 18.5、正常 18.5–24、過重 24–27、肥胖 27 以上。BMI 僅供健康參考，不能單獨作為診斷依據；兒童、青少年、孕婦及部分特殊族群需使用其他評估方式。</div>
+</main>
+<script>
+const form=document.getElementById('bmi-form');
+const heightInput=document.getElementById('height');
+const weightInput=document.getElementById('weight');
+const result=document.getElementById('result');
+const error=document.getElementById('error');
+form.addEventListener('submit',e=>{
+  e.preventDefault();
+  const h=Number(heightInput.value),w=Number(weightInput.value);
+  if(!heightInput.value||!weightInput.value||!Number.isFinite(h)||!Number.isFinite(w)||h<50||h>250||w<10||w>500){
+    error.textContent='請輸入有效的身高（50–250 公分）及體重（10–500 公斤）。';
+    error.style.display='block';result.classList.remove('show');return;
+  }
+  error.style.display='none';
+  const bmi=w/((h/100)**2);
+  let category,advice;
+  if(bmi<18.5){category='體重過輕';advice='BMI 稍低於成人建議範圍，可留意營養攝取與日常飲食。';}
+  else if(bmi<24){category='正常範圍';advice='目前 BMI 落在成人正常範圍，維持均衡飲食與規律活動。';}
+  else if(bmi<27){category='體重過重';advice='可從飲食均衡、規律運動與生活習慣開始調整。';}
+  else{category='肥胖';advice='建議留意整體健康狀況，必要時諮詢醫療專業人員。';}
+  document.getElementById('bmi-value').textContent=bmi.toFixed(1);
+  document.getElementById('category').textContent=category;
+  document.getElementById('advice').textContent=advice;
+  result.classList.add('show');
+});
+document.getElementById('reset').addEventListener('click',()=>{
+  form.reset();result.classList.remove('show');error.style.display='none';heightInput.focus();
+});
+</script>
+</body>
+</html>
